@@ -1,0 +1,34 @@
+---
+- name: define local facts about smb on file server
+  hosts: file,!prod
+  vars:
+    - facts_file: facts/smb.fact
+  tasks:
+  - name: create a facts directory
+    file:
+      state: directory
+      path: /etc/ansible/facts.d/
+      recurse: true
+  - name: copy over the facts file
+    copy:
+      src: facts/smb.fact
+      dest: /etc/ansible/facts.d/
+
+- name: use smb local facts to install enable samba
+  hosts: file,!prod
+  tasks:
+  - name: install samba
+    yum:
+      name: "{{ansible_local.smb.smbfacts.smb_server_package}}"
+      state: latest
+  - name: enable service
+    service:
+      name: "{{ansible_local.smb.smbfacts.smb_service}}"
+      state: started
+      enabled: true
+  - name: open firewall for samba
+    firewalld:
+      service: "{{ansible_local.smb.smbfacts.smb_firewall}}"
+      state: enabled
+      permanent: yes
+      immediate: yes

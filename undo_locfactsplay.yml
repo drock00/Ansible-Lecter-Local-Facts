@@ -1,0 +1,51 @@
+---   
+- name: uninstall disable smb and remove smb local facts
+  hosts: file,!prod
+  tasks:
+  - name: block using local facts to remove smb
+    block:
+    - name: block | close firewall for samba
+      firewalld:
+        service: "{{ansible_local.smb.smbfacts.smb_firewall}}"
+        state: disabled
+        permanent: no
+        immediate: no
+    - name: block | disable service
+      service:
+        name: "{{ansible_local.smb.smbfacts.smb_service}}"
+        state: stopped
+        enabled: false    
+    - name: block | uninstall samba
+      yum:
+        name: "{{ansible_local.smb.smbfacts.smb_server_package}}"
+        state: absent
+    - name: block | search for smb.fact in directory
+      shell: ls /etc/ansible/facts.d/
+      register: result
+    - name: block | delete a smb.fact if it exists
+      file:
+        state: absent
+        path: /etc/ansible/facts.d/smb.fact
+      when: "'smb.fact' in result.stdout"
+    rescue:
+    - name: rescue | close firewall for samba
+      firewalld:
+        service: samba
+        state: disabled
+        permanent: no
+        immediate: no
+    - name: rescue | check if service is active
+      shell: systemctl is-active smb
+      register: result2
+      failed_when: "'foo' in result2.stdout"
+    - name: rescue mode | disable service
+      service:
+        name: smb
+        state: stopped
+        enabled: false   
+      when: "'inactive' not in result2.stdout"
+    - name: rescue | uninstall samba
+      yum:
+        name: samba
+        state: absent
+

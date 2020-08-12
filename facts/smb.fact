@@ -1,0 +1,5 @@
+[smbfacts]
+smb_server_package = samba
+smb_client_package = samba-client
+smb_service = smb
+smb_firewall = samba
